@@ -33,7 +33,7 @@ let
   edk2-src = fetchFromGitHub {
     owner = "NVIDIA";
     repo = "edk2";
-    rev = "r${l4tVersion}-edk2-stable202208";
+    rev = "r35.2.1-edk2-stable202208";
     fetchSubmodules = true;
     sha256 = "sha256-PTbNxbncfSvxLW2XmdRHzUy+w5+1Blpk62DJpxDmedA=";
   };
@@ -41,39 +41,43 @@ let
   edk2-platforms = fetchFromGitHub {
     owner = "NVIDIA";
     repo = "edk2-platforms";
-    rev = "r${l4tVersion}-upstream-20220830";
+    rev = "r35.2.1-upstream-20220830";
     sha256 = "sha256-PjAJEbbswOLYupMg/xEqkAOJuAC8SxNsQlb9YBswRfo=";
   };
 
   edk2-non-osi = fetchFromGitHub {
     owner = "NVIDIA";
     repo = "edk2-non-osi";
-    rev = "r${l4tVersion}-upstream-20220830";
+    rev = "r35.2.1-upstream-20220830";
     sha256 = "sha256-EPtI63jYhEIo4uVTH3lUt9NC/lK5vPVacUAc5qgmz9M=";
   };
 
-  edk2-nvidia = applyPatches {
-    src = fetchFromGitHub {
-      owner = "NVIDIA";
-      repo = "edk2-nvidia";
-      rev = "2c81e0fc74f703012dd3b2f18da5be256e142fe3"; # Latest on r35.3.1-updates as of 2023-05-17
-      sha256 = "sha256-Qh1g+8a7ZcFG4VmwH+xDix6dpZ881HaNRE/FJoaRljw=";
-    };
-    patches = edk2NvidiaPatches ++ [ ./capsule-authentication.patch ];
-    postPatch = lib.optionalString errorLevelInfo ''
-      sed -i 's#PcdDebugPrintErrorLevel|.*#PcdDebugPrintErrorLevel|0x8000004F#' Platform/NVIDIA/NVIDIA.common.dsc.inc
-    '' + lib.optionalString (bootLogo != null) ''
-      cp ${bootLogoVariants}/logo1080.bmp Silicon/NVIDIA/Assets/nvidiagray1080.bmp
-      cp ${bootLogoVariants}/logo720.bmp Silicon/NVIDIA/Assets/nvidiagray720.bmp
-      cp ${bootLogoVariants}/logo480.bmp Silicon/NVIDIA/Assets/nvidiagray480.bmp
-    '';
+  _edk2-nvidia = fetchFromGitHub {
+    owner = "NVIDIA";
+    repo = "edk2-nvidia";
+    rev = "r${l4tVersion}";
+    sha256 = "sha256-W2kt3r2ymmAj/bKahjEfc8B9orI1o4GYCkByDJ6JORA=";
   };
+  edk2-nvidia =
+    if (errorLevelInfo || bootLogo != null)
+    then applyPatches {
+      src = _edk2-nvidia;
+      patches = edk2NvidiaPatches;
+      postPatch = lib.optionalString errorLevelInfo ''
+        sed -i 's#PcdDebugPrintErrorLevel|.*#PcdDebugPrintErrorLevel|0x8000004F#' Platform/NVIDIA/NVIDIA.common.dsc.inc
+      '' + lib.optionalString (bootLogo != null) ''
+        cp ${bootLogoVariants}/logo1080.bmp Silicon/NVIDIA/Assets/nvidiagray1080.bmp
+        cp ${bootLogoVariants}/logo720.bmp Silicon/NVIDIA/Assets/nvidiagray720.bmp
+        cp ${bootLogoVariants}/logo480.bmp Silicon/NVIDIA/Assets/nvidiagray480.bmp
+      '';
+    }
+    else _edk2-nvidia;
 
   edk2-nvidia-non-osi = fetchFromGitHub {
     owner = "NVIDIA";
     repo = "edk2-nvidia-non-osi";
-    rev = "r${l4tVersion}";
-    sha256 = "sha256-27PTl+svZUocmU6r/8FdqqI9rwHAi+6zSFs4fBA13Ks=";
+    rev = "r35.2.1";
+    sha256 = "sha256-28xndaIEsVwbD7jIesSO6MKO662jRXVX/y0IdmVTKoc=";
   };
 
   edk2-jetson = edk2.overrideAttrs (_: { src = edk2-src; });
